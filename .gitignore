@@ -1,15 +1,14 @@
+# 构建产物
 bin/
 obj/
 publish/
 dist/
-.e2e-data/
-.finaltest/
-.finaldata/
-.installtest/
-.instdata/
-.shotdata/
+
+# 测试与调试残留
 .testdata*/
 e2e-shots/
-*.user
 *.log
 *.err
+
+# 用户配置
+*.user
