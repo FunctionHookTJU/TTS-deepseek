@@ -17,10 +17,28 @@ param(
     [ValidateSet("public", "private")]
     [string]$Visibility = "public",
     [string]$Owner = "",
-    [switch]$SkipPush
+    [switch]$SkipPush,
+    # 访问 GitHub 需要代理时填这里，例如 http://127.0.0.1:12000
+    [string]$Proxy = ""
 )
 
 $ErrorActionPreference = "Stop"
+
+# ---- 代理处理 -----------------------------------------------------------
+# gh 不读取 Windows 系统代理设置，只认环境变量。若本机必须走代理才能访问
+# GitHub，必须显式设置，否则会出现 device/code 超时、资产上传 404 等异常。
+if ($Proxy) {
+    $env:HTTPS_PROXY = $Proxy
+    $env:HTTP_PROXY  = $Proxy
+    $env:ALL_PROXY   = $Proxy
+    Write-Host "已设置代理：$Proxy" -ForegroundColor Yellow
+} elseif (-not $env:HTTPS_PROXY) {
+    $sysProxy = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -ErrorAction SilentlyContinue)
+    if ($sysProxy.ProxyEnable -eq 1 -and $sysProxy.ProxyServer) {
+        Write-Host "提示：检测到系统代理 $($sysProxy.ProxyServer) 但未设置环境变量。" -ForegroundColor Yellow
+        Write-Host "      gh 不会读取系统代理；如遇网络错误请加参数 -Proxy http://$($sysProxy.ProxyServer)" -ForegroundColor Yellow
+    }
+}
 
 function Write-Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Cyan }
 function Write-Ok($msg)   { Write-Host "    $msg" -ForegroundColor Green }
@@ -123,13 +141,30 @@ $notes = @"
 "@
 
 $existing = & $gh release view "v$Version" --json tagName --jq .tagName 2>$null
-if ($LASTEXITCODE -eq 0) {
-    Write-Ok "Release 已存在，上传/覆盖产物"
-    & $gh release upload "v$Version" @files --clobber
-} else {
-    & $gh release create "v$Version" @files --title "DeepSeek 语音合成 v$Version" --notes $notes
+if ($LASTEXITCODE -ne 0) {
+    # 先建空 Release，再逐个上传资产。
+    # 直接带文件创建时，任一资产上传失败会导致整体返回非零，
+    # 且报错信息只有一句 HTTP 404，难以判断到底是哪个环节出错。
+    & $gh release create "v$Version" --title "DeepSeek 语音合成 v$Version" --notes $notes
+    if ($LASTEXITCODE -ne 0) { throw "创建 Release 失败" }
+    Write-Ok "Release 已创建"
 }
-if ($LASTEXITCODE -ne 0) { throw "创建 Release 失败" }
+
+Write-Step "上传安装包（约 58 MB，走代理可能需 1~2 分钟）"
+& $gh release upload "v$Version" $setup.FullName --clobber
+if ($LASTEXITCODE -ne 0) { throw "安装包上传失败（若为 HTTP 404，通常是代理未覆盖 uploads.github.com，请确认 -Proxy 参数）" }
+Write-Ok ($setup.Name + " 上传完成")
+
+if (Test-Path $portable) {
+    Write-Step "上传免安装版"
+    & $gh release upload "v$Version" (Resolve-Path $portable).Path --clobber
+    if ($LASTEXITCODE -ne 0) { throw "免安装版上传失败" }
+    Write-Ok "DeepSeekTTS.exe 上传完成"
+}
+
+Write-Step "校验资产"
+$assets = & $gh release view "v$Version" --json assets --jq '.assets[] | "\(.name)  \(.state)  \(.size)"'
+Write-Ok $assets
 
 $url = (& $gh release view "v$Version" --json url --jq .url).Trim()
 Write-Host "`n完成！" -ForegroundColor Green
