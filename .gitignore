@@ -1,0 +1,15 @@
+bin/
+obj/
+publish/
+dist/
+.e2e-data/
+.finaltest/
+.finaldata/
+.installtest/
+.instdata/
+.shotdata/
+.testdata*/
+e2e-shots/
+*.user
+*.log
+*.err

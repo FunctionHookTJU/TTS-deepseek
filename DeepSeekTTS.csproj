@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>DeepSeekTTS</AssemblyName>
+    <RootNamespace>DeepSeekTTS</RootNamespace>
+    <Product>DeepSeek 语音合成</Product>
+    <AssemblyTitle>DeepSeek 语音合成</AssemblyTitle>
+    <Version>2.0.0</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- 应用图标：任务栏、窗口、exe 文件图标 -->
+    <ApplicationIcon>assets\logo.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="assets\logo.ico" />
+    <Resource Include="assets\icon-256.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+
+  <!-- tests/ 是独立的测试项目，不能被打包进主程序 -->
+  <ItemGroup>
+    <Compile Remove="tests/**" />
+    <Page Remove="tests/**" />
+    <EmbeddedResource Remove="tests/**" />
+    <None Remove="tests/**" />
+    <ApplicationDefinition Remove="tests/**" />
+    <ProjectReference Remove="tests/**" />
+  </ItemGroup>
+
+</Project>
