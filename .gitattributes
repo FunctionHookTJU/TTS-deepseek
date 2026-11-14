@@ -1,0 +1,20 @@
+# 统一换行符，避免跨平台协作时混乱
+* text=auto
+
+# Inno Setup 脚本必须保持 CRLF 且带 UTF-8 BOM，否则中文字符串会乱码
+*.iss text eol=crlf working-tree-encoding=UTF-8
+
+# 二进制资源不做换行转换
+*.ico binary
+*.png binary
+*.bmp binary
+*.exe binary
+
+# 脚本与源码
+*.cs text diff=csharp
+*.xaml text
+*.js text
+*.mjs text
+*.py text
+*.yml text
+*.md text
